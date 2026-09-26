@@ -19,7 +19,7 @@
  * Difficulty: 1
  */
 int bitAnd(int x, int y) {
-    return 2;
+    return ~(~x | ~y);
 }
 
 /*
@@ -30,7 +30,8 @@ int bitAnd(int x, int y) {
  *   Difficulty: 1
  */
 int bitXor(int x, int y) {
-    return 2;
+    //return ~((~(x&~y))&(~(~x&y)));
+    return ~(x & y) & ~(~x & ~y);
 }
 
 /*
@@ -50,7 +51,15 @@ int bitXor(int x, int y) {
  *   1 if x and y have the same sign , 0 otherwise.
  */
 int samesign(int x, int y) {
-    return 2;
+    if((!x)&&(!y))
+        return 1;
+    if(!x)
+        return 0;
+    if(!y)
+        return 0;
+    if((x>>31)^(y>>31))
+        return 0;
+    return 1;
 }
 
 /*
@@ -63,7 +72,18 @@ int samesign(int x, int y) {
  *   Difficulty: 4
  */
 int logtwo(int v) {
-    return 2;
+    int r1,r2,r3,r4,r5;
+    r1=((v>>16)>0)<<4;
+    v=v>>r1;
+    r2=((v>>8)>0)<<3;
+    v=v>>r2;
+    r3=((v>>4)>0)<<2;
+    v=v>>r3;
+    r4=((v>>2)>0)<<1;
+    v=v>>r4;
+    r5=((v>>1)>0);
+    //v=v>>r5;
+    return r1|r2|r3|r4|r5;
 }
 
 /*
@@ -76,7 +96,16 @@ int logtwo(int v) {
  *    Difficulty: 2
  */
 int byteSwap(int x, int n, int m) {
-    return 2;
+    int n3=n<<3,m3=m<<3;
+    int d1=255<<n3,d2=255<<m3;
+    int d3=~(d1|d2);
+    int s1=d1&x,s2=d2&x;
+    s1=(s1>>n3&255)<<m3;
+    s2=(s2>>m3&255)<<n3;
+    x=x&d3;
+    x=x|s1;
+    x=x|s2;
+    return x;
 }
 
 /*
@@ -88,7 +117,14 @@ int byteSwap(int x, int n, int m) {
  *   Difficulty: 3
  */
 unsigned reverse(unsigned v) {
-    return 2;
+    unsigned int ans=0;
+    for(int i=0;i-32;i++)
+    {
+        unsigned int a;
+        a=((v>>i)&1);
+        ans=(ans<<1|a);
+    }
+    return ans;
 }
 
 /*
@@ -100,7 +136,12 @@ unsigned reverse(unsigned v) {
  *   Difficulty: 3
  */
 int logicalShift(int x, int n) {
-    return 2;
+    int r=(x>>31)&1;
+    r=r<<(n^31);
+    x=x&0x7FFFFFFF;
+    x=x>>n;
+    x=x|r;
+    return x;
 }
 
 /*
@@ -112,7 +153,18 @@ int logicalShift(int x, int n) {
  *   Difficulty: 4
  */
 int leftBitCount(int x) {
-    return 2;
+    int a=x;
+    int r1,r2,r3,r4,r5;
+    r1=(!(~(x>>16)))<<4;
+    x=x<<r1;
+    r2=(!(~(x>>24)))<<3;
+    x=x<<r2;
+    r3=(!(~(x>>28)))<<2;
+    x=x<<r3;
+    r4=(!(~(x>>30)))<<1;
+    x=x<<r4;
+    r5=(!(~(x>>31)));
+    return (r1|r2|r3|r4|r5)+(!(~a));
 }
 
 /*
@@ -124,7 +176,37 @@ int leftBitCount(int x) {
  *   Difficulty: 4
  */
 unsigned float_i2f(int x) {
-    return 2;
+    unsigned ux=x;
+    unsigned sign=ux & 0x80000000;
+    unsigned a;
+    unsigned frac;
+    unsigned low;
+    int exp=158;
+    if (sign)
+        a = ~ux + 1;
+    else
+        a = ux;
+    if (!a)
+        return 0;
+    while (!(a & 0x80000000)) 
+    {
+        a = a << 1;
+        exp = exp - 1;
+    }
+    frac = (a >> 8) & 0x7FFFFF;
+    low = a & 0xFF;
+    if (low > 0x80)
+        frac = frac + 1;
+    if (low == 0x80)
+        if (frac & 1)
+            frac = frac + 1;
+    if (frac & 0x800000)
+    {
+        exp = exp + 1;
+        frac = 0;
+    }
+    return sign | (exp << 23) | frac;
+
 }
 
 /*
@@ -139,7 +221,15 @@ unsigned float_i2f(int x) {
  *   Difficulty: 4
  */
 unsigned floatScale2(unsigned uf) {
-    return 2;
+    unsigned a = (uf >> 23) & 255;
+
+    if (a == 255)
+        return uf;
+    if (!a)
+        return (uf & 0x80000000) | ((uf & 0x7FFFFF) << 1);
+    if (a == 254)
+        return (uf & 0x80000000) | 0x7F800000;
+    return uf + (1 << 23);
 }
 
 /*
@@ -156,7 +246,20 @@ unsigned floatScale2(unsigned uf) {
  *   Difficulty: 3
  */
 int float64_f2i(unsigned uf1, unsigned uf2) {
-    return 2;
+    unsigned a = uf2 >> 31;
+    unsigned b = (uf2 >> 20) & 2047;
+    unsigned c = 0x80000000 | ((uf2 & 0xFFFFF) << 11) | (uf1 >> 21);
+    int d;
+
+    if (b < 1023)
+        return 0;
+    if (b >= 1054)
+        return 0x80000000u;
+
+    d = c >> (1054 - b);
+    if (a)
+        return -d;
+    return d;
 }
 
 /*
@@ -173,5 +276,11 @@ int float64_f2i(unsigned uf1, unsigned uf2) {
  *   Difficulty: 4
  */
 unsigned floatPower2(int x) {
-    return 2;
+    if (x < -149)
+        return 0;
+    if (x < -126)
+        return 1 << (x + 149);
+    if (x > 127)
+        return 0x7F800000;
+    return (x + 127) << 23;
 }
